@@ -108,18 +108,18 @@ export default function FamilyDashboard() {
     const subscriptions: (() => void)[] = [];
 
     const setupSubscriptions = async () => {
-      if (!user?.id || !familyDetails?.id) return;
+    if (!user?.id || !familyDetails?.id) return;
 
       const familyId = familyDetails.id;
-
-      // Subscribe to family activity updates
+    
+    // Subscribe to family activity updates
       const activityUnsubscribe = subscribeToFamilyActivity(
         familyId,
-        (payload) => {
+      (payload) => {
           if (!isSubscribed) return;
           
-          if (payload.eventType === 'INSERT') {
-            const newActivity = payload.new;
+        if (payload.eventType === 'INSERT') {
+          const newActivity = payload.new;
             setFamilyActivities(prev => {
               const updated = [newActivity, ...prev].slice(0, 50);
               return updated;
@@ -128,11 +128,11 @@ export default function FamilyDashboard() {
         }
       );
       subscriptions.push(activityUnsubscribe);
-
-      // Subscribe to family details updates
+    
+    // Subscribe to family details updates
       const familyUnsubscribe = subscribeToFamily(
         familyId,
-        async (payload) => {
+      async (payload) => {
           if (!isSubscribed) return;
           
           if (payload.eventType === 'UPDATE' && !isUpdatingRef.current) {
@@ -152,9 +152,9 @@ export default function FamilyDashboard() {
 
                 // Only update members if the count changed
                 if (updatedDetails.member_count !== familyDetails.member_count) {
-                  const members = await familyService.getFamilyMembers(user.id);
+          const members = await familyService.getFamilyMembers(user.id);
                   if (isSubscribed) {
-                    setFamilyMembers(members);
+          setFamilyMembers(members);
                   }
                 }
               }
