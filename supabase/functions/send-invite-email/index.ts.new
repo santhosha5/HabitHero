@@ -1,0 +1,105 @@
+// Follow this setup guide to integrate the Deno language server with your editor:
+// https://deno.land/manual/getting_started/setup_your_environment
+// This enables autocomplete, go to definition, etc.
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { Resend } from "npm:resend@2.0.0"
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+console.log('Edge Function loaded');
+
+// Debug function to safely stringify objects
+function safeStringify(obj: unknown): string {
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch (error) {
+    return `[Error stringifying object: ${error}]`;
+  }
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    console.log('Received request:', {
+      method: req.method,
+      headers: Object.fromEntries(req.headers.entries())
+    });
+
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('Missing authorization header');
+      throw new Error('Missing authorization header')
+    }
+
+    // Log environment variables (without sensitive values)
+    console.log('Environment check:', {
+      hasResendKey: !!Deno.env.get('RESEND_API_KEY'),
+      siteUrl: Deno.env.get('PUBLIC_SITE_URL')
+    });
+
+    const body = await req.json();
+    console.log('Request body:', safeStringify(body));
+
+    const { recipientEmail, inviteCode, familyName, inviterName } = body;
+    
+    if (!recipientEmail || !inviteCode || !familyName) {
+      const missingFields = [];
+      if (!recipientEmail) missingFields.push('recipientEmail');
+      if (!inviteCode) missingFields.push('inviteCode');
+      if (!familyName) missingFields.push('familyName');
+      console.error('Missing required fields:', missingFields);
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
+    }
+
+    const senderName = inviterName || 'A family member'
+
+    console.log('Initializing Resend...');
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
+    const siteUrl = Deno.env.get('PUBLIC_SITE_URL') || 'http://localhost:3000'
+
+    console.log('Sending email...');
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: 'HabitHero <no-reply@resend.dev>',
+      to: recipientEmail,
+      subject: `${senderName} invited you to join their family on HabitHero`,
+      html: `
+        <h1>You've been invited to join ${familyName} on HabitHero!</h1>
+        <p>${senderName} has invited you to join their family group. Join them to share habits, track progress, and motivate each other!</p>
+        <p>Your invite code is: <strong>${inviteCode}</strong></p>
+        <p>Click here to join: <a href="${siteUrl}/family/join?code=${inviteCode}">${siteUrl}/family/join?code=${inviteCode}</a></p>
+      `
+    })
+
+    if (emailError) {
+      console.error('Resend API error:', emailError);
+      throw emailError;
+    }
+
+    console.log('Email sent successfully:', emailData);
+
+    return new Response(JSON.stringify({ success: true, data: emailData }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    })
+
+  } catch (error) {
+    console.error('Error in Edge Function:', error);
+    const errorResponse = {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      details: error instanceof Error ? error.stack : undefined
+    };
+    console.log('Sending error response:', safeStringify(errorResponse));
+    return new Response(JSON.stringify(errorResponse), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400
+    })
+  }
+})

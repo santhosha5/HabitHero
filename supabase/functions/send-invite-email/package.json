@@ -1,0 +1,12 @@
+{
+  "name": "send-invite-email",
+  "version": "1.0.0",
+  "description": "Edge function to send family invite emails",
+  "main": "index.ts",
+  "dependencies": {
+    "@supabase/functions-js": "^2.4.4",
+    "@supabase/supabase-js": "^2.0.0",
+    "@types/node": "^22.15.29",
+    "resend": "^1.0.0"
+  }
+}

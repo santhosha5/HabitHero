@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "lib": ["deno.ns", "deno.window", "esnext"],
+    "target": "es2021",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["@types/node"],
+    "noEmit": true
+  }
+}
